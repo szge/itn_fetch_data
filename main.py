@@ -6,6 +6,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import glob
 import os
+import base64
 
 app = Flask(__name__)
 CORS(app)  # prevents the CORS response header error in browser
@@ -147,6 +148,9 @@ def fetch_data():
             (cluster_id, cluster_name, cluster_start, cluster_end, article_aid, article_id, article_utcdate,
              article_title, article_url, media_label, topic_id, story_image) = cluster
 
+            # if story_image is not None:
+            #     print(type(story_image))
+
             if previous_cluster is None:
                 # only runs on first iteration
                 article_jsons = []
@@ -163,7 +167,7 @@ def fetch_data():
                     "starttime": previous_cluster[2].isoformat(),
                     "endtime": previous_cluster[3].isoformat(),
                     "topics": stories_to_json[previous_cluster[0]],
-                    "story_image": previous_cluster[11],
+                    "story_image": base64.b64encode(previous_cluster[11]).decode() if previous_cluster[11] is not None else None,
                     "articles": article_jsons
                 })
 
@@ -205,7 +209,7 @@ def fetch_data():
                 "starttime": previous_cluster[2].isoformat(),
                 "endtime": previous_cluster[3].isoformat(),
                 "topics": stories_to_json[previous_cluster[0]],
-                "story_image": story_image,
+                "story_image": base64.b64encode(story_image).decode() if story_image is not None else None,
                 "articles": article_jsons
             })
 
@@ -238,11 +242,11 @@ def index():
 
 
 if __name__ == "__main__":
-    # scheduler = BackgroundScheduler()
-    # scheduler.add_job(func=lambda: fetch_data(), trigger="interval", hours=4)
-    # scheduler.start()
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=lambda: fetch_data(), trigger="interval", hours=4)
+    scheduler.start()
 
     # uncomment to force fetch right now
-    fetch_data()
+    # fetch_data()
 
-    # app.run()
+    app.run()
