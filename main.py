@@ -108,8 +108,8 @@ def fetch_data():
         # get all palantir_data from past month
         min_end_date = (db_latest_article - timedelta(weeks=5)).strftime("%Y-%m-%d")
         max_start_date = (db_latest_article + timedelta(days=1)).strftime("%Y-%m-%d")
-        print(min_end_date)
-        print(max_start_date)
+        # print(min_end_date)
+        # print(max_start_date)
 
         latest_article = datetime.min
 
@@ -222,8 +222,24 @@ def fetch_data():
                 "stories": story_jsons
             }
 
-            with gzip.open("./output/monthly_" + datetime.now().strftime("%Y_%m_%d-%H_%M") + ".json.gz", "wt") as f:
-                f.write(json.dumps(final_json, default=str))
+            # get the latest file
+            list_of_monthly_files = glob.glob("./output/*.json.gz")
+            try:
+                latest_monthly_file = max(list_of_monthly_files, key=os.path.getctime)
+                with gzip.open(latest_monthly_file, "r") as f_latest:
+                    previous_latest_article = json.loads(f_latest.read().decode("utf-8")).get("latest_article")
+                    if previous_latest_article != latest_article.isoformat():
+                        # only create a new one if database has new stuff
+                        with gzip.open("./output/monthly_" + datetime.now().strftime("%Y_%m_%d-%H_%M") + ".json.gz", "wt") as f:
+                            f.write(json.dumps(final_json, default=str))
+                        print("database has new articles. updating cache.")
+                    else:
+                        print("database has no new articles since last check. cache not updated.")
+            except ValueError:
+                # max is working on an empty list => no previous data => create a new one
+                with gzip.open("./output/monthly_" + datetime.now().strftime("%Y_%m_%d-%H_%M") + ".json.gz", "wt") as f:
+                    f.write(json.dumps(final_json, default=str))
+                    print("cache is empty. creating new cache file.")
         # endregion
 
         con.close()
@@ -235,10 +251,6 @@ def index():
     # get most recent daily and monthly info
     list_of_monthly_files = glob.glob("./output/*.json.gz")
     latest_monthly_file = max(list_of_monthly_files, key=os.path.getctime)
-    print(open(latest_monthly_file))
-    # monthly_data = json.load(open(latest_monthly_file))
-    # response = make_response()
-    # return jsonify(monthly_data)
     return send_file(latest_monthly_file)
 
 
@@ -248,6 +260,6 @@ if __name__ == "__main__":
     scheduler.start()
 
     # uncomment to force fetch right now
-    # fetch_data()
+    fetch_data()
 
     app.run()
