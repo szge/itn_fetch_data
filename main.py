@@ -7,6 +7,8 @@ from flask_cors import CORS
 import glob
 import os
 import base64
+import gzip
+from io import StringIO
 
 app = Flask(__name__)
 CORS(app)  # prevents the CORS response header error in browser
@@ -221,10 +223,8 @@ def fetch_data():
                 "stories": story_jsons
             }
 
-            with open("./output/monthly_" + datetime.now().strftime("%Y_%m_%d-%H_%M") + ".json", "w") as outfile:
-                # uncomment next line for better human readability
-                # outfile.write(json.dumps(final_json, indent=4, default=str))
-                outfile.write(json.dumps(final_json, default=str))
+            with gzip.open("./output/monthly_" + datetime.now().strftime("%Y_%m_%d-%H_%M") + ".json.gz", "wt") as f:
+                f.write(json.dumps(final_json, default=str))
         # endregion
 
         con.close()
