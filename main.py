@@ -2,13 +2,12 @@ import json
 import mysql.connector
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, jsonify
+from flask import Flask, jsonify, make_response, send_file, send_from_directory
 from flask_cors import CORS
 import glob
 import os
 import base64
 import gzip
-from io import StringIO
 
 app = Flask(__name__)
 CORS(app)  # prevents the CORS response header error in browser
@@ -234,11 +233,13 @@ def fetch_data():
 @app.route("/")
 def index():
     # get most recent daily and monthly info
-    list_of_monthly_files = glob.glob("./output/*.json")
+    list_of_monthly_files = glob.glob("./output/*.json.gz")
     latest_monthly_file = max(list_of_monthly_files, key=os.path.getctime)
-    monthly_data = json.load(open(latest_monthly_file))
-
-    return jsonify(monthly_data)
+    print(open(latest_monthly_file))
+    # monthly_data = json.load(open(latest_monthly_file))
+    # response = make_response()
+    # return jsonify(monthly_data)
+    return send_file(latest_monthly_file)
 
 
 if __name__ == "__main__":
